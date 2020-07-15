@@ -86,7 +86,10 @@ func (p *setnsProcess) signal(sig os.Signal) error {
 }
 
 func (p *setnsProcess) start() (err error) {
-	defer p.messageSockPair.parent.Close()
+	defer func() error {
+		fmt.Println("start end")
+		return p.messageSockPair.parent.Close()
+	}()
 	err = p.cmd.Start()
 	// close the write-side of the pipes (controlled by child)
 	p.messageSockPair.child.Close()
@@ -95,9 +98,11 @@ func (p *setnsProcess) start() (err error) {
 		return newSystemErrorWithCause(err, "starting setns process")
 	}
 	if p.bootstrapData != nil {
+		logrus.Debug("Start Copy bootstrapData")
 		if _, err := io.Copy(p.messageSockPair.parent, p.bootstrapData); err != nil {
 			return newSystemErrorWithCause(err, "copying bootstrap data to pipe")
 		}
+		logrus.Debug("End Copy bootstrapData")
 	}
 	if err = p.execSetns(); err != nil {
 		return newSystemErrorWithCause(err, "executing setns process")
@@ -139,9 +144,12 @@ func (p *setnsProcess) start() (err error) {
 	if err := setupRlimits(p.config.Rlimits, p.pid()); err != nil {
 		return newSystemErrorWithCause(err, "setting rlimits for process")
 	}
+	logrus.Debug("Start Write Config")
 	if err := utils.WriteJSON(p.messageSockPair.parent, p.config); err != nil {
 		return newSystemErrorWithCause(err, "writing config to pipe")
 	}
+
+	logrus.Debug("End Write Config")
 
 	ierr := parseSync(p.messageSockPair.parent, func(sync *syncT) error {
 		switch sync.Type {
@@ -198,6 +206,8 @@ func (p *setnsProcess) execSetns() error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("firstChildPid: %d, Child: %d \n", pid.PidFirstChild, pid.Pid)
 	p.cmd.Process = process
 	p.process.ops = p
 	return nil

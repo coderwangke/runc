@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"golang.org/x/sys/unix"
+	"path/filepath"
 )
 
 // EnsureProcHandle returns whether or not the given file handle is on procfs.

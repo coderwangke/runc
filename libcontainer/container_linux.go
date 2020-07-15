@@ -479,6 +479,7 @@ func (c *linuxContainer) newParentProcess(p *Process) (parentProcess, error) {
 
 	cmd := c.commandTemplate(p, childInitPipe, childLogPipe)
 	if !p.Init {
+		fmt.Println("not init")
 		return c.newSetnsProcess(p, cmd, messageSockPair, logFilePair)
 	}
 
